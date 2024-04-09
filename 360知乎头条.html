@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* CSS样式 */
+        .suggestions-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .suggestion-box {
+            width: 100%;
+            border: 1px solid #ccc;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+        }
+        .suggestion-box h4 {
+            margin-bottom: 0.5rem;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        ul li {
+            padding: 0.5rem;
+            cursor: pointer;
+        }
+
+        /* 输入框水平居中 */
+        .center {
+            text-align: center;
+        }
+        .centered-input {
+            display: inline-block;
+            margin-top: 10px; /* 根据需要调整垂直位置 */
+        }
+
+        @media (min-width: 768px) {
+            .suggestions-container {
+                justify-content: space-between;
+            }
+            .suggestion-box {
+                width: 30%;
+            }
+        }
+    </style>
+</head>
+<body>
+  <div class="center">
+    <input type="text" id="search-input" class="centered-input" placeholder="请输入..." autofocus>
+   </div>
+   <br>
+    <div class="suggestions-container">
+      
+    
+        <div class="suggestion-box so360">
+            <h4>360搜索</h4>
+            <ul id="so360-suggestions"></ul>
+        </div>
+        
+        
+        
+        <div class="suggestion-box zhihu">
+          <h4>知乎</h4>
+          <ul id="zhihu-suggestions"></ul>         
+      </div>
+      
+      <div class="suggestion-box toutiao">
+        <h4>头条</h4>
+        <ul id="toutiao-suggestions"></ul>
+      </div>      
+    </div>
+</body>
+</html>
+
+    
+<script>
+
+// 添加头条搜索建议处理
+
+document.getElementById('search-input').addEventListener('input', async () => {
+    const keyword = event.target.value;
+    const url = `https://so.toutiao.com/2/article/search_sug/?keyword=${keyword}`;
+ 
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+ 
+        const searchResults = document.getElementById('toutiao-suggestions');
+        searchResults.innerHTML = '';
+ 
+        // 限制输出最多8条数据 
+        let count = 0;
+        data.data.forEach(item => {
+            if (count < 8) {
+                const li = document.createElement('li');
+                li.textContent = item.keyword;
+                searchResults.appendChild(li);
+                count++;
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching data:', error);
+    }
+});
+
+      
+
+        // 360搜索建议JSONP处理（如前所述）
+        // ...
+        // 为360搜索建议注册全局回调函数
+        window.handle360Suggestions = function(data) {
+            const so360Suggestions = data.result.map(result => result.word);
+            showSuggestions('#so360-suggestions', so360Suggestions);
+        };
+
+        // 动态加载360搜索建议的JSONP
+        document.getElementById('search-input').addEventListener('input', function(event) {
+            const keyword = event.target.value;
+            const scriptElement = document.createElement('script');
+            scriptElement.src = `https://sug.so.360.cn/suggest?callback=handle360Suggestions&encodein=utf-8&encodeout=utf-8&format=json&src=srp_suggst&fields=word&word=${encodeURIComponent(keyword)}`;
+            document.body.appendChild(scriptElement);
+            
+            // 清除旧的JSONP脚本
+            const oldScripts = document.querySelectorAll('script[src*="sug.so.360.cn/suggest"]');
+            oldScripts.forEach(oldScript => oldScript.remove());
+        });
+
+       
+
+// 知乎
+
+document.getElementById('search-input').addEventListener('input', async function(event) {
+  const keyword = event.target.value;
+  const zhihuApiUrl = `https://www.zhihu.com/api/v4/search/suggest?q=${encodeURIComponent(keyword)}`;
+
+  try {
+    const zhihuResponse = await fetch(zhihuApiUrl);
+    if (zhihuResponse.ok) {
+      const zhihuData = await zhihuResponse.json();
+
+      // 提取搜索建议
+      const zhihuSuggestions = zhihuData.suggest.map(item => item.query);
+
+      showSuggestions('#zhihu-suggestions', zhihuSuggestions);
+    } else {
+      console.error(`请求知乎搜索建议失败，状态码: ${zhihuResponse.status}`);
+    }
+  } catch (error) {
+    console.error('获取知乎搜索建议时发生错误:', error.message);
+  }
+});
+
+ 
+
+// 清空列表
+// 获取输入框元素
+var myInput = document.getElementById('search-input');
+
+// 监听输入框的变化
+myInput.addEventListener('input', function() {
+    // 检查输入框是否为空
+    if (myInput.value === '') {
+        // 如果为空，则刷新页面
+        location.reload();
+    }
+});
+
+
+
+
+    
+
+// 更新DOM显示搜索建议的通用函数
+function showSuggestions(listId, suggestions) {
+    const limitedSuggestions = suggestions.slice(0, 8); // 取前8条建议
+    const list = document.querySelector(listId);
+    list.innerHTML = limitedSuggestions.map(suggestion => `<li>${suggestion}</li>`).join('');
+}
+
+
+</script>
